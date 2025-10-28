@@ -21,7 +21,7 @@
 -- le nombre de tentatives échouées doit être initialisé à 0.
 -- tous les champs doivent être obligatoires.
 CREATE TABLE utilisateurs (
-    utilisateur_id  NUMBER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,     
+    utilisateur_id NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,     
     nom_utilisateur VARCHAR2(255) UNIQUE NOT NULL,     
     mot_de_passe VARCHAR2(255) NOT NULL,      
     sel  VARCHAR2(255) NOT NULL,             
