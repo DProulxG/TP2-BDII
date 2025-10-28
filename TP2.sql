@@ -5,8 +5,8 @@
 --  \_/ \_/   /____/
 --                  
 -- Format: Nom, Prenom - DA
---      1: Laflamme, Bob - 1234567
---      2: 
+--      1: Proulx-Girard, David - 1240561
+--      2: Minville, Mathieu - 2462352
 
 /*Repondez a toutes les questions suivantes et completez les sections TODO, ajouter des captures d'écran de l'exécution dans l'énoncé Word*/
 
