@@ -21,12 +21,12 @@
 -- le nombre de tentatives échouées doit être initialisé à 0.
 -- tous les champs doivent être obligatoires.
 CREATE TABLE utilisateurs (
-    utilisateur_id        
-    nom_utilisateur        
-    mot_de_passe        
-    sel               
-    nb_tentatives_echouees
-    date_creation          
+    utilisateur_id  NUMBER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,     
+    nom_utilisateur VARCHAR2(255) UNIQUE NOT NULL,     
+    mot_de_passe VARCHAR2(255) NOT NULL,      
+    sel  VARCHAR2(255) NOT NULL,             
+    nb_tentatives_echouees NUMBER DEFAULT 0,
+    date_creation  TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL
 );
 
 -- Étape 2 : Créez une fonction pour générer un sel aléatoire, qui prend en paramètre la longueur souhaitée du sel.
