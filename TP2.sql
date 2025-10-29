@@ -29,27 +29,122 @@ CREATE TABLE utilisateurs (
     date_creation  TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL
 );
 
+SELECT * FROM utilisateurs;
 -- Étape 2 : Créez une fonction pour générer un sel aléatoire, qui prend en paramètre la longueur souhaitée du sel.
 CREATE OR REPLACE FUNCTION generer_sel(
     p_longueur IN NUMBER
-) RETURN  IS
+) RETURN VARCHAR2 IS
+v_sel VARCHAR2(255);
 BEGIN
+    if p_longueur <= 0 then
+        raise_application_error(-20001, 'Longueur du sel ne peut pas etre inferieur a 0');
+    end if;
     --TODO : Utilisez DBMS_random pour générer un sel aléatoire.
+   v_sel := dbms_random.string('P', p_longueur);
+   return v_sel;
 END;
+/
+
+
+
+DECLARE
+    v_sel VARCHAR2(255);
+BEGIN
+    v_sel := generer_sel(12);
+    dbms_output.put_line('Sel généré: ' || v_sel);
+end;
 /
 
 -- Étape 3 : Créer une fonction pour valider si le mot de passe respecte les critères de sécurité et est assez fort.
 -- Prend en paramètre le mot de passe et retourne TRUE si le mot de passe est assez fort, sinon FALSE.
 -- Choisissez au moins 3 critères à respecter et expliquez les en commentaire.
+create or REPLACE function valide_mdp (
+    v_mdp in VARCHAR2
+)return BOOLEAN is 
+    v_mdp_valide BOOLEAN;
+BEGIN
+        if length(v_mdp)  < 12  THEN
+            v_mdp_valide := false;
+            dbms_output.put_line('Mot de passe trop court');
+
+        elsif NOT REGEXP_LIKE(v_mdp, '[0-9]') THEN  
+            v_mdp_valide := false;
+            dbms_output.put_line('Mot de passe doit contenir au moins 1 chiffre');
+        elsif not REGEXP_LIKE(v_mdp,'[A-Z]') THEN
+           v_mdp_valide := false;
+            dbms_output.put_line('Mot de passe doit contenir au moins 1 majuscule');
+        ELSE
+          v_mdp_valide := true;
+            dbms_output.put_line('Mot de passe est valide');
+        
+        end if;
+        return v_mdp_valide;
+end;
+/
+
 
 --TODO: fonction de validation de mot de passe
-    
+  declare 
+    v_result boolean;
+    begin
+    v_result := VALIDE_MDP('BONJOUR');
+    IF v_result = true THEN
+    dbms_output.put_line('Renvoie true');
+    ELSE
+    dbms_output.put_line('Renvoie false');
+    end if;
+end;
+
+  declare 
+    v_result boolean;
+    begin
+    v_result := VALIDE_MDP('bonjourbonjour');
+     IF v_result = true THEN
+    dbms_output.put_line('Renvoie true');
+    ELSE
+    dbms_output.put_line('Renvoie false');
+    end if;
+end;
+
+  declare 
+    v_result boolean;
+    begin
+    v_result := VALIDE_MDP('bonjourbonjour1');
+     IF v_result = true THEN
+    dbms_output.put_line('Renvoie true');
+    ELSE
+    dbms_output.put_line('Renvoie false');
+    end if;
+end;
+
+  declare 
+    v_result boolean;
+    begin
+    v_result := VALIDE_MDP('bonjourbonjourA');
+     IF v_result = true THEN
+    dbms_output.put_line('Renvoie true');
+    ELSE
+    dbms_output.put_line('Renvoie false');
+    end if;
+end;
+
+  declare 
+    v_result boolean;
+    begin
+    v_result := VALIDE_MDP('bonjourbonjourA1');
+     IF v_result = true THEN
+    dbms_output.put_line('Renvoie true');
+    ELSE
+    dbms_output.put_line('Renvoie false');
+    end if;
+end;
+
 -- Étape 4 : Créez une fonction qui calcule le hachage d’un mot de passe en utilisant le package DBMS_CRYPTO et l'algorythme SHA-256.
 -- Le hachage doit inclure : le mot de passe, et un sel d'au moins 12 caractères généré aléatoirement.*/
 -- La fonction lance exception si le mot de passe n'est pas assez fort.
 CREATE OR REPLACE FUNCTION obtenir_hash_mot_de_passe(
-    p_password IN ,
-    p_sel     IN 
+    p_password IN VARCHAR2,
+    p_sel     IN generer_sel
 ) RETURN  IS
 BEGIN
     --TODO : calculer un hachage sécurisé.
