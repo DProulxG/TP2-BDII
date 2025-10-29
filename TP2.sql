@@ -197,9 +197,21 @@ END;
 -- La fonction doit gérer les exceptions si le mot de passe n'est pas assez fort et annuler l'insertion ou 
 -- la mise à jour et afficher un message d'erreur approprié.
 CREATE OR REPLACE TRIGGER trigger_hachage_mot_de_passe
+before insert or update 
+on utilisateurs
+for each row
+Declare 
+    v_mdp VARCHAR2;
+    v_mdp_hache VARCHAR2;
+    v_sel VARCHAR2;
+     v_mdp_faible exception;
 --TODO
 BEGIN
     --TODO : Appelez la procédure de hash et stocker l'empreinte et le sel.
+    if inserting THEN
+    dbms_output.put_line('Mot de passe inséré');
+    elsif updating then 
+    dbms_output.put_line('Mot de passe modifié');
 END;
 /
 
