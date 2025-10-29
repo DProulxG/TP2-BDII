@@ -143,11 +143,52 @@ end;
 -- Le hachage doit inclure : le mot de passe, et un sel d'au moins 12 caractères généré aléatoirement.*/
 -- La fonction lance exception si le mot de passe n'est pas assez fort.
 CREATE OR REPLACE FUNCTION obtenir_hash_mot_de_passe(
+    
     p_password IN VARCHAR2,
-    p_sel     IN generer_sel
-) RETURN  IS
+    p_sel     IN VARCHAR2
+
+) RETURN  VARCHAR2 IS
+
+    v_mdp_hache VARCHAR2(255);
+    v_mdp_hache_raw RAW(32); -- DBMS_CRYPTO.HASH retourne un type RAW qu'il faut reconvertir en VARCHAR par la suite
+    v_sel_et_mdp VARCHAR2(255):= p_sel || p_password;
+    v_mdp_ok BOOLEAN := FALSE;
+    v_sel_ok BOOLEAN := FALSE; 
+
 BEGIN
     --TODO : calculer un hachage sécurisé.
+    
+    -- Effectue la vérification du mot de passe
+    IF (VALIDE_MDP(p_password)) THEN
+        v_mdp_ok := TRUE;
+    ELSE 
+        DBMS_OUTPUT.PUT_LINE('Le mot de passe ne respecte pas les conditions...');
+    END IF;
+
+    -- Vérifie la longueur du sel
+    IF (LENGTH(p_sel) >= 12) THEN
+        v_sel_ok := TRUE;
+    ELSE 
+        DBMS_OUTPUT.PUT_LINE('Le sel doit avoir une longueur minimum de 12 caractères...');
+    END IF;
+
+  -- Vérifie que le mot de passe et le sel sont valide avant de générer le hash
+    IF (v_mdp_ok AND v_sel_ok) THEN
+
+        v_mdp_hache_raw := DBMS_CRYPTO.HASH(
+           UTL_I18N.STRING_TO_RAW(v_sel_et_mdp, 'AL32UTF8'), --  convertit la VARCHAR2 en RAW
+           DBMS_CRYPTO.HASH_SH256 -- l'algorithme SHA-256 à utiliser
+        );
+
+        v_mdp_hache := RAWTOHEX(v_mdp_hache_raw); -- Conversion de RAW à VARCHAR2 afin de pouvoir le retourner correctement
+
+    ELSE 
+        RAISE_APPLICATION_ERROR(-20002, 'Hashage impossible...Le sel ou mot de passe sont invalides'); -- Exception lancée si le mot de passe n'est pas assez fort
+    END IF;
+
+
+    RETURN v_mdp_hache;
+
 END;
 /
 
