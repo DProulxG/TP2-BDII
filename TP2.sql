@@ -262,10 +262,96 @@ CREATE OR REPLACE FUNCTION valider_connexion(
     p_username IN VARCHAR2,
     p_password IN VARCHAR2
 ) RETURN BOOLEAN AS
+
+    v_connexion BOOLEAN := FALSE;
+    v_sel_utilisateur VARCHAR2(255);
+    v_empreinte VARCHAR2(255);
+    v_mdp_hashe VARCHAR2(255);
+    v_nb_tentatives NUMBER;
+
+
 BEGIN
     --TODO : Vérifiez le mot de passe.
+
+    -- ******voir pour faire un curseur qui permet de placer les trois SELECT...INTO en 1 seule commande*******
+
+    -- recupere le sel de l'utilisateur
+    SELECT sel INTO v_sel_utilisateur
+    FROM UTILISATEURS
+    WHERE NOM_UTILISATEUR = p_username;
+
+    -- recupere le nombre de connexions echouees de l'utilisateur
+    SELECT nb_tentatives_echouees INTO v_nb_tentatives
+    FROM UTILISATEURS
+    WHERE NOM_UTILISATEUR = p_username;
+
+    -- recupere le mot de passe hashé stocké dans la table
+    SELECT mot_de_passe INTO v_mdp_hashe
+    FROM UTILISATEURS
+    WHERE NOM_UTILISATEUR = p_username;
+    
+    -- création de l'empreinte
+    v_empreinte := OBTENIR_HASH_MOT_DE_PASSE(p_password, v_sel_utilisateur);
+
+    -- comparaison de l'empreinte et du mot de passe 
+    IF (v_mdp_hashe = v_empreinte) THEN
+    
+        IF (v_nb_tentatives < 3) THEN
+            -- validation de la connexion
+            v_connexion := TRUE;
+            -- remet le nombre de tentatives à 0
+            UPDATE UTILISATEURS
+            SET NB_TENTATIVES_ECHOUEES = 0
+            WHERE nom_utilisateur = p_username;
+        ELSE 
+            -- refus de connexion
+            v_connexion := FALSE;
+
+        END IF;
+    ELSE
+        -- incrémentation du nombre de tentatives echouees
+        UPDATE UTILISATEURS
+        SET NB_TENTATIVES_ECHOUEES = (v_nb_tentatives + 1)
+        WHERE nom_utilisateur = p_username;
+
+    END IF;
+
+    RETURN v_connexion;
+
 END;
 /
+
+-- test...Je le laisse car peut-etre que ce sera utile pour les tests à la prochaine question! Mais ca fonctionne!
+/*
+DELETE FROM UTILISATEURS WHERE NOM_UTILISATEUR = 'mathieu';
+
+INSERT INTO utilisateurs(NOM_UTILISATEUR, MOT_DE_PASSE) VALUES(
+    'mathieu',
+    'Tp2Ba$eD0nnees2025!'
+);
+
+select * from utilisateurs;
+
+    UPDATE UTILISATEURS
+            SET NB_TENTATIVES_ECHOUEES = 0
+            WHERE nom_utilisateur = 'mathieu';
+
+
+
+DECLARE
+
+    connexion BOOLEAN := valider_connexion('mathieu', 'Tp2Ba$eD0nnees2025!');
+BEGIN
+
+    IF (connexion) THEN 
+        DBMS_OUTPUT.PUT_LINE('Connexion réussie!');
+    ELSE 
+        DBMS_OUTPUT.PUT_LINE('Connexion échouée...');
+    END IF;
+
+END;
+/
+*/
 
 /*Étape 5 : Testez votre solution:
 1. ajouter un utilisateur avec un mot de passe invalide
