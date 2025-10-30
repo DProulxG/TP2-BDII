@@ -201,19 +201,55 @@ before insert or update
 on utilisateurs
 for each row
 Declare 
-    v_mdp VARCHAR2;
-    v_mdp_hache VARCHAR2;
-    v_sel VARCHAR2;
-     v_mdp_faible exception;
+    v_mdp VARCHAR2(255);
+    v_mdp_hache VARCHAR2(255);
+    v_sel VARCHAR2(255);
+    v_mdp_faible EXCEPTION;
+    PRAGMA EXCEPTION_init(v_mdp_faible, -200001);
 --TODO
 BEGIN
     --TODO : Appelez la procédure de hash et stocker l'empreinte et le sel.
+    
+
+    -- Validation du nouveau mot de passe
+    if not VALIDE_MDP(v_mdp) THEN
+        raise v_mdp_faible;
+    --Si mdp valide
+    ELSif VALIDE_MDP(v_mdp) then
+        v_mdp := :new.mot_de_passe;
+        v_sel := GENERER_SEL(12);
+        v_mdp_hache := OBTENIR_HASH_MOT_DE_PASSE(v_mdp, v_sel);
+
+        --Définit le nouveau sel et le mdp haché
+        :NEW.sel := v_sel;
+        :NEW.mot_de_passe := v_mdp_hache;
+    end if;
+
+    -- Message de comfirmation
     if inserting THEN
-    dbms_output.put_line('Mot de passe inséré');
+    dbms_output.put_line('Mot de passe inséré a bien été inséré : ' || v_mdp);
     elsif updating then 
-    dbms_output.put_line('Mot de passe modifié');
+    dbms_output.put_line('Mot de passe modifié :' || v_mdp);
+    END if;
+
+    EXCEPTION
+    when v_mdp_faible THEN
+    DBMS_OUTPUT.PUT_LINE('Le mot de passe que vous tentez de creer n''est pas suffisament puissant...');
 END;
 /
+
+--Visualiser la table Utilisateur
+select * from utilisateurs;
+
+-- Test mdp invalide
+INSERT INTO utilisateurs (nom_utilisateur, mot_de_passe)
+VALUES ('Pierre', 'Bonmotdepasse1');
+select * from utilisateurs;
+
+--Test mdp valide
+INSERT INTO utilisateurs (nom_utilisateur, mot_de_passe)
+VALUES ('Louis', 'tropcourt');
+select * from utilisateurs;
 
 /*Étape 4 : Créez une fonction pour vérifier si le mot de passe donné correspond à l'empreinte enregistré.
 -- Prend en paramètre le nom d'utilisateur et le mot de passe.
