@@ -73,7 +73,7 @@ BEGIN
         elsif not REGEXP_LIKE(v_mdp,'[A-Z]') THEN
            v_mdp_valide := false;
             dbms_output.put_line('Mot de passe doit contenir au moins 1 majuscule');
-        ELSE
+        ELSif length(v_mdp) >= 12 and REGEXP_LIKE(v_mdp, '[0-9]') and REGEXP_LIKE(v_mdp,'[A-Z]') then
           v_mdp_valide := true;
             dbms_output.put_line('Mot de passe est valide');
         
@@ -94,6 +94,7 @@ end;
     dbms_output.put_line('Renvoie false');
     end if;
 end;
+/
 
   declare 
     v_result boolean;
@@ -105,6 +106,7 @@ end;
     dbms_output.put_line('Renvoie false');
     end if;
 end;
+/
 
   declare 
     v_result boolean;
@@ -116,6 +118,7 @@ end;
     dbms_output.put_line('Renvoie false');
     end if;
 end;
+/
 
   declare 
     v_result boolean;
@@ -127,6 +130,7 @@ end;
     dbms_output.put_line('Renvoie false');
     end if;
 end;
+/
 
   declare 
     v_result boolean;
@@ -138,6 +142,7 @@ end;
     dbms_output.put_line('Renvoie false');
     end if;
 end;
+/
 
 -- Étape 4 : Créez une fonction qui calcule le hachage d’un mot de passe en utilisant le package DBMS_CRYPTO et l'algorythme SHA-256.
 -- Le hachage doit inclure : le mot de passe, et un sel d'au moins 12 caractères généré aléatoirement.*/
@@ -205,15 +210,18 @@ Declare
     v_mdp_hache VARCHAR2(255);
     v_sel VARCHAR2(255);
     v_mdp_faible EXCEPTION;
-    PRAGMA EXCEPTION_init(v_mdp_faible, -200001);
+    PRAGMA EXCEPTION_init(v_mdp_faible, -200004);
 --TODO
 BEGIN
+    --v_mdp stock le champ courant pour la validation de v_mdp
+    v_mdp := :new.mot_de_passe;
     --TODO : Appelez la procédure de hash et stocker l'empreinte et le sel.
     
-
     -- Validation du nouveau mot de passe
     if not VALIDE_MDP(v_mdp) THEN
         raise v_mdp_faible;
+
+        
     --Si mdp valide
     ELSif VALIDE_MDP(v_mdp) then
         v_mdp := :new.mot_de_passe;
@@ -223,14 +231,14 @@ BEGIN
         --Définit le nouveau sel et le mdp haché
         :NEW.sel := v_sel;
         :NEW.mot_de_passe := v_mdp_hache;
-    end if;
 
-    -- Message de comfirmation
-    if inserting THEN
-    dbms_output.put_line('Mot de passe inséré a bien été inséré : ' || v_mdp);
-    elsif updating then 
-    dbms_output.put_line('Mot de passe modifié :' || v_mdp);
-    END if;
+        -- Message de comfirmation
+        if inserting THEN
+            dbms_output.put_line('Mot de passe inséré a bien été inséré : ' || v_mdp);
+        elsif updating then 
+            dbms_output.put_line('Mot de passe modifié : ' || v_mdp);
+        END if;
+    end if;
 
     EXCEPTION
     when v_mdp_faible THEN
@@ -241,15 +249,20 @@ END;
 --Visualiser la table Utilisateur
 select * from utilisateurs;
 
--- Test mdp invalide
+-- Test mdp valide et message de validation
 INSERT INTO utilisateurs (nom_utilisateur, mot_de_passe)
-VALUES ('Pierre', 'Bonmotdepasse1');
+VALUES ('David', 'UnAutreMotDePasse1');
 select * from utilisateurs;
 
---Test mdp valide
+--Test mdp invalide avec message d'avertissement
 INSERT INTO utilisateurs (nom_utilisateur, mot_de_passe)
 VALUES ('Louis', 'tropcourt');
 select * from utilisateurs;
+
+-- Test de modification de mot de passe
+update utilisateurs
+set MOT_DE_PASSE = 'UnAutreMotDePasse2'
+WHERE UTILISATEUR_ID = 22; 
 
 /*Étape 4 : Créez une fonction pour vérifier si le mot de passe donné correspond à l'empreinte enregistré.
 -- Prend en paramètre le nom d'utilisateur et le mot de passe.
@@ -322,8 +335,9 @@ END;
 /
 
 -- test...Je le laisse car peut-etre que ce sera utile pour les tests à la prochaine question! Mais ca fonctionne!
-/*
+
 DELETE FROM UTILISATEURS WHERE NOM_UTILISATEUR = 'mathieu';
+DELETE FROM UTILISATEURS WHERE NOM_UTILISATEUR = 'Mario';
 
 INSERT INTO utilisateurs(NOM_UTILISATEUR, MOT_DE_PASSE) VALUES(
     'mathieu',
@@ -351,7 +365,7 @@ BEGIN
 
 END;
 /
-*/
+select * FROM UTILISATEURS;
 
 /*Étape 5 : Testez votre solution:
 1. ajouter un utilisateur avec un mot de passe invalide
