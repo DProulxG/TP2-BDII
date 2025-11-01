@@ -234,7 +234,7 @@ BEGIN
 
         -- Message de comfirmation
         if inserting THEN
-            dbms_output.put_line('Mot de passe inséré a bien été inséré : ' || v_mdp);
+            dbms_output.put_line('Le mot de passe a bien été inséré : ' || v_mdp);
         elsif updating then 
             dbms_output.put_line('Mot de passe modifié : ' || v_mdp);
         END if;
@@ -264,7 +264,7 @@ update utilisateurs
 set MOT_DE_PASSE = 'UnAutreMotDePasse2'
 WHERE UTILISATEUR_ID = 22; 
 
-/*Étape 4 : Créez une fonction pour vérifier si le mot de passe donné correspond à l'empreinte enregistré.
+/*Étape 6 : Créez une fonction pour vérifier si le mot de passe donné correspond à l'empreinte enregistré.
 -- Prend en paramètre le nom d'utilisateur et le mot de passe.
 -- Doit enregistrer le nombre de tentatives de connexion échouées pour chaque utilisateur,
    -- incrémenté de 1 pour chaque échec et remettre à 0 lors d'une réussite.
@@ -336,22 +336,20 @@ END;
 
 -- test...Je le laisse car peut-etre que ce sera utile pour les tests à la prochaine question! Mais ca fonctionne!
 
+select * from utilisateurs;
+
 DELETE FROM UTILISATEURS WHERE NOM_UTILISATEUR = 'mathieu';
 DELETE FROM UTILISATEURS WHERE NOM_UTILISATEUR = 'Mario';
 
-INSERT INTO utilisateurs(NOM_UTILISATEUR, MOT_DE_PASSE) VALUES(
-    'mathieu',
-    'Tp2Ba$eD0nnees2025!'
-);
+INSERT INTO utilisateurs(NOM_UTILISATEUR, MOT_DE_PASSE) VALUES('mathieu','Tp2Ba$eD0nnees2025!');
 
-select * from utilisateurs;
-
-    UPDATE UTILISATEURS
-            SET NB_TENTATIVES_ECHOUEES = 0
-            WHERE nom_utilisateur = 'mathieu';
+--Réintialise le nombre de tentative à 0
+UPDATE UTILISATEURS
+SET NB_TENTATIVES_ECHOUEES = 0
+WHERE nom_utilisateur = 'mathieu';
 
 
-
+-- Validation lors de la saisie du bon mot de passe || Échec dans le cas ou le nombre de tentative est supérieure à 3
 DECLARE
 
     connexion BOOLEAN := valider_connexion('mathieu', 'Tp2Ba$eD0nnees2025!');
@@ -365,26 +363,106 @@ BEGIN
 
 END;
 /
-select * FROM UTILISATEURS;
 
-/*Étape 5 : Testez votre solution:
-1. ajouter un utilisateur avec un mot de passe invalide
-2. ajouter un utilisateur avec un mot de passe valide
-3. tester la connexion avec le bon mot de passe
-4. tester la connexion avec un mot de passe incorrect plusieurs fois.
-5. tester la modification du mot de passe d'un utilisateur existant.
-6. ajouter 2 utilisateurs de test avec le meme mot de passe et validez que leurs empreintes sont différentes.
-*/
---test
+
+-- Boucle pour incrementer le nombre de tentatives (Permet facilement de valider l'echec de validation du mdp même avec le bon mot de passe)
+-- De plus, permet de valider la fonctionnalité de l'incrémentation
 DECLARE
-    --TODO 
+    connexion BOOLEAN := valider_connexion('mathieu', 'Tp2Ba$eD0nnees2025');
 BEGIN
-    --TODO
+
+    for i IN 1..4 LOOP
+        IF (connexion) THEN 
+            DBMS_OUTPUT.PUT_LINE('Connexion réussie!');
+        ELSE 
+            DBMS_OUTPUT.PUT_LINE('Connexion échouée...');
+    END IF;
+END LOOP;
 END;
 /
 
+select * FROM UTILISATEURS;
+
+--Étape 7 : Testez votre solution:
+
+--1. ajouter un utilisateur avec un mot de passe invalide
+insert into UTILISATEURS (nom_utilisateur, mot_de_passe)
+values('Henry', 'abcd123');
+
+--2. ajouter un utilisateur avec un mot de passe valide
+insert into UTILISATEURS (nom_utilisateur, mot_de_passe)
+values('Henry', 'abcd123MaisQuiPasse');
+
+--3. tester la connexion avec le bon mot de passe
+declare
+    v_connexion BOOLEAN := VALIDER_CONNEXION('Henry', 'abcd123MaisQuiPasse');
+BEGIN
+    if (v_connexion) THEN
+    DBMS_OUTPUT.PUT_LINE('Votre connexion s''est bien passée ');
+    else 
+    DBMS_OUTPUT.PUT_LINE('Échec de connexion');
+    end if;
+end;
+/
+
+--4. tester la connexion avec un mot de passe incorrect plusieurs fois.
+declare
+    v_connexion BOOLEAN := VALIDER_CONNEXION('Henry', 'abcd123MaisQuiPassePas');
+BEGIN
+    if (v_connexion) THEN
+    DBMS_OUTPUT.PUT_LINE('Votre connexion s''est bien passée ');
+    else 
+    DBMS_OUTPUT.PUT_LINE('Échec de connexion');
+    end if;
+end;
+/
+
+
+--5. tester la modification du mot de passe d'un utilisateur existant.
+update UTILISATEURS
+set mot_de_passe = 'SacAPapier23'
+where nom_utilisateur = 'Henry';
+
+
+--6. ajouter 2 utilisateurs de test avec le meme mot de passe et validez que leurs empreintes sont différentes.
+--test
+  --Ajout utilisateur 1
+    insert into UTILISATEURS (nom_utilisateur, mot_de_passe)values('Utilisateur1', 'Abcdefg123456');
+    --Ajout utilisateur 2
+    insert into UTILISATEURS (nom_utilisateur, mot_de_passe)values('Utilisateur2', 'Abcdefg123456');
+
+DECLARE
+    v_mdp_util1 VARCHAR2(255);
+    v_mdp_util2 VARCHAR2(255);
+BEGIN
+    select 
+        mot_de_passe
+    into 
+        v_mdp_util1
+    from 
+        utilisateurs
+    where nom_utilisateur = 'Utilisateur1';
+
+    select 
+        mot_de_passe
+    into 
+        v_mdp_util2
+    from 
+        utilisateurs
+    where nom_utilisateur = 'Utilisateur2';
+
+
+    if(v_mdp_util1 like v_mdp_util2) then
+        DBMS_OUTPUT.PUT_LINE('Ho non... l''empreinte est la même  :(');
+    ELSE
+        DBMS_OUTPUT.PUT_LINE('Génial, l''empreinte est différente :)');
+    end if;
+END;
+
+select * from utilisateurs;
 
 -- Q2: créer une procédure pour vérifier qu'aucune empreinte n'est dupliquée dans la table utilisateurs. 
+
 -- Étape 1: créer une table de journalisation_empreinte_duplique pour enregistrer les doublons.
 -- Utiliser un block PL/SQL pour créer la table à partir des type de la table utilisateurs et avec les champs: 
 -- log_id (clé primaire, auto-incrémentée), 1_utilisateur_id, 2_utilisateur_id, date_log. 
@@ -405,6 +483,9 @@ END;
 
 /*Étape 4 : Testez votre solution, à vous de choisir les scénarios de test.
 1.
+
+
+
 
 Pour tester vous pouvez désactiver le trigger de hash et insérer des utilisateurs avec les mêmes mot de passe. 
 N'oublier pas de réactiver le trigger après vos tests.
