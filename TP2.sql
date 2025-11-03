@@ -427,9 +427,9 @@ where nom_utilisateur = 'Henry';
 --6. ajouter 2 utilisateurs de test avec le meme mot de passe et validez que leurs empreintes sont différentes.
 --test
   --Ajout utilisateur 1
-    insert into UTILISATEURS (nom_utilisateur, mot_de_passe)values('Utilisateur1', 'Abcdefg123456');
+    insert into UTILISATEURS (nom_utilisateur, mot_de_passe)values('Pierre', 'Abcdefg123456');
     --Ajout utilisateur 2
-    insert into UTILISATEURS (nom_utilisateur, mot_de_passe)values('Utilisateur2', 'Abcdefg123456');
+    insert into UTILISATEURS (nom_utilisateur, mot_de_passe)values('Jacques', 'Abcdefg123456');
 
 DECLARE
     v_mdp_util1 VARCHAR2(255);
@@ -501,13 +501,29 @@ create or replace procedure verifier_empreintes_dupliquees IS
     cursor c_hash is
         select utilisateur_id, nom_utilisateur, MOT_DE_PASSE
         from utilisateurs;
+
+    cursor c_mots_de_passe IS select utilisateur_id, nom_utilisateur, MOT_DE_PASSE
+                              from utilisateurs;    
 begin
     for curs in c_hash LOOP
-        DBMS_OUTPUT.PUT_LINE('ID : ' || curs.utilisateur_id);
-        DBMS_OUTPUT.PUT_LINE('Nom : ' || curs.nom_utilisateur);
-        DBMS_OUTPUT.PUT_LINE('Empreinte : ' || curs.MOT_DE_PASSE);
-         DBMS_OUTPUT.PUT_LINE('Date : ' || SYSDATE);
+
+        for mdp in c_mots_de_passe LOOP
+
+            IF (curs.mot_de_passe = mdp.mot_de_passe) THEN
+
+                IF (curs.utilisateur_id = mdp.utilisateur_id) THEN
+                    CONTINUE;
+                ELSE 
+                    DBMS_OUTPUT.PUT_LINE('DOUBLON TROUVÉ!! ' || curs.mot_de_passe || ' de l''utilisateur ' || curs.nom_utilisateur || ' et ' || mdp.mot_de_passe || ' de l''utilisateur ' || mdp.nom_utilisateur);
+                END IF;    
+
+            END IF;
+
+        END LOOP;
+
     end loop;
+
+
 end;
 /
  
@@ -529,6 +545,17 @@ execute verifier_empreintes_dupliquees;
 Pour tester vous pouvez désactiver le trigger de hash et insérer des utilisateurs avec les mêmes mot de passe. 
 N'oublier pas de réactiver le trigger après vos tests.
 */
+ALTER TRIGGER trigger_hachage_mot_de_passe DISABLE;
+
+  --Ajout utilisateur 1
+    insert into UTILISATEURS (nom_utilisateur, mot_de_passe, sel)values('Pierre', 'Abcdefg123456', 'HELLO');
+    --Ajout utilisateur 2
+    insert into UTILISATEURS (nom_utilisateur, mot_de_passe, sel)values('Jacques', 'Abcdefg123456', 'HELLO');
+
+    UPDATE UTILISATEURS
+    SET mot_de_passe = 'Abcdefg123456'
+    WHERE nom_utilisateur = 'mathieu';
+
 
 
 
