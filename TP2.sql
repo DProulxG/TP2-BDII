@@ -487,6 +487,23 @@ BEGIN
 END;
 /
 
+BEGIN
+
+        EXECUTE IMMEDIATE '  
+    
+        CREATE TABLE journalisation_empreinte_duplique (
+
+        log_id NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        utilisateur1_id VARCHAR(255),
+        utilisateur2_id VARCHAR(255),
+        date_log TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL
+
+    )'
+    ;
+
+END;
+/
+
 
 
 
