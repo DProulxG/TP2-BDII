@@ -514,7 +514,13 @@ begin
                 IF (curs.utilisateur_id = mdp.utilisateur_id) THEN
                     CONTINUE;
                 ELSE 
-                    DBMS_OUTPUT.PUT_LINE('DOUBLON TROUVÉ!! ' || curs.mot_de_passe || ' de l''utilisateur ' || curs.nom_utilisateur || ' et ' || mdp.mot_de_passe || ' de l''utilisateur ' || mdp.nom_utilisateur);
+                   -- DBMS_OUTPUT.PUT_LINE('DOUBLON TROUVÉ!! ' || curs.mot_de_passe || ' de l''utilisateur ' || curs.nom_utilisateur || ' et ' || mdp.mot_de_passe || ' de l''utilisateur ' || mdp.nom_utilisateur);
+                    INSERT INTO JOURNALISATION_EMPREINTE_DUPLIQUE(utilisateur1_id, utilisateur2_id) VALUES 
+                    (
+                        CURS.UTILISATEUR_ID, MDP.UTILISATEUR_ID
+
+                    );
+
                 END IF;    
 
             END IF;
@@ -529,6 +535,7 @@ end;
  
 execute verifier_empreintes_dupliquees;
  
+ select * from JOURNALISATION_EMPREINTE_DUPLIQUE;
 
 
 
@@ -551,7 +558,7 @@ ALTER TRIGGER trigger_hachage_mot_de_passe DISABLE;
     insert into UTILISATEURS (nom_utilisateur, mot_de_passe, sel)values('Pierre', 'Abcdefg123456', 'HELLO');
     --Ajout utilisateur 2
     insert into UTILISATEURS (nom_utilisateur, mot_de_passe, sel)values('Jacques', 'Abcdefg123456', 'HELLO');
-
+    --Changement du mot de passe
     UPDATE UTILISATEURS
     SET mot_de_passe = 'Abcdefg123456'
     WHERE nom_utilisateur = 'mathieu';
