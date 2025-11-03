@@ -20,6 +20,7 @@
 -- la date de création doit être automatiquement définie à la date et l'heure actuelles lors de l'insertion d'un nouvel utilisateur.
 -- le nombre de tentatives échouées doit être initialisé à 0.
 -- tous les champs doivent être obligatoires.
+
 CREATE TABLE utilisateurs (
     utilisateur_id NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,     
     nom_utilisateur VARCHAR2(255) UNIQUE NOT NULL,     
@@ -44,7 +45,6 @@ BEGIN
    return v_sel;
 END;
 /
-
 
 
 DECLARE
@@ -181,7 +181,7 @@ BEGIN
     IF (v_mdp_ok AND v_sel_ok) THEN
 
         v_mdp_hache_raw := DBMS_CRYPTO.HASH(
-           UTL_I18N.STRING_TO_RAW(v_sel_et_mdp, 'AL32UTF8'), --  convertit la VARCHAR2 en RAW
+           UTL_I18N.STRING_TO_RAW(v_sel_et_mdp, 'AL32UTF8'), --  convertit la VARCHAR2 en RAW (binaire brut) => AL32UTF8 : Encodage UTF8
            DBMS_CRYPTO.HASH_SH256 -- l'algorithme SHA-256 à utiliser
         );
 
@@ -467,6 +467,28 @@ select * from utilisateurs;
 -- Utiliser un block PL/SQL pour créer la table à partir des type de la table utilisateurs et avec les champs: 
 -- log_id (clé primaire, auto-incrémentée), 1_utilisateur_id, 2_utilisateur_id, date_log. 
 -- PS: si un type de données change, le script doit toujours fonctionner.
+
+DECLARE 
+    
+    v_util1 utilisateurs.utilisateur_id%TYPE;
+    v_util2 utilisateurs.utilisateur_id%TYPE;
+    v_date utilisateurs.date_creation%TYPE;
+
+BEGIN
+
+    CREATE TABLE journalisation_empreinte_duplique (
+
+        log_id NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        utilisateur1_id utilisateurs.utilisateur_id%TYPE,
+        utilisateur2_id utilisateurs.utilisateur_id%TYPE,
+        date_log utilisateurs.date_creation%TYPE
+    );
+
+END;
+/
+
+
+
 
 
 
