@@ -468,24 +468,7 @@ select * from utilisateurs;
 -- log_id (clé primaire, auto-incrémentée), 1_utilisateur_id, 2_utilisateur_id, date_log. 
 -- PS: si un type de données change, le script doit toujours fonctionner.
 
-DECLARE 
-    
-    v_util1 utilisateurs.utilisateur_id%TYPE;
-    v_util2 utilisateurs.utilisateur_id%TYPE;
-    v_date utilisateurs.date_creation%TYPE;
 
-BEGIN
-
-    CREATE TABLE journalisation_empreinte_duplique (
-
-        log_id NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-        utilisateur1_id utilisateurs.utilisateur_id%TYPE,
-        utilisateur2_id utilisateurs.utilisateur_id%TYPE,
-        date_log utilisateurs.date_creation%TYPE
-    );
-
-END;
-/
 
 BEGIN
 
@@ -506,13 +489,30 @@ END;
 
 
 
-
-
-
 -- Étape 2: créer une procédure nommée verifier_empreintes_dupliquees.
 -- La procédure doit rechercher les empreintes dupliquées dans la table utilisateurs.
 -- Pour chaque doublon trouvé, la procédure doit: afficher son nom d'utilisateur et son utilisateur_id dans le terminal
 -- insérer une entrée dans la table de journalisation_empreinte_duplique avec les informations des deux utilisateurs et la date actuelle.
+
+select *
+from utilisateurs;
+ 
+create or replace procedure verifier_empreintes_dupliquees IS
+    cursor c_hash is
+        select utilisateur_id, nom_utilisateur, MOT_DE_PASSE
+        from utilisateurs;
+begin
+    for curs in c_hash LOOP
+        DBMS_OUTPUT.PUT_LINE('ID : ' || curs.utilisateur_id);
+        DBMS_OUTPUT.PUT_LINE('Nom : ' || curs.nom_utilisateur);
+        DBMS_OUTPUT.PUT_LINE('Empreinte : ' || curs.MOT_DE_PASSE);
+         DBMS_OUTPUT.PUT_LINE('Date : ' || SYSDATE);
+    end loop;
+end;
+/
+ 
+execute verifier_empreintes_dupliquees;
+ 
 
 
 
