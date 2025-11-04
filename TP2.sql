@@ -468,21 +468,89 @@ select * from utilisateurs;
 -- log_id (clé primaire, auto-incrémentée), 1_utilisateur_id, 2_utilisateur_id, date_log. 
 -- PS: si un type de données change, le script doit toujours fonctionner.
 
+DECLARE 
 
+    v_utilisateur_id_type VARCHAR2(50);
+    v_date_log_type VARCHAR2(50);
+    v_code_creation_table VARCHAR2(500);
 
 BEGIN
 
-        EXECUTE IMMEDIATE '  
+-- pour trouver le type de utilisateur_id
+    SELECT CASE
+
+         WHEN data_type = ('VARCHAR2') THEN data_type || '(' || data_length || ')'
+
+         WHEN data_type = ('NUMBER') THEN data_type ||
+
+            CASE WHEN DATA_PRECISION IS NOT NULL THEN
+
+            '(' || data_precision ||
+             
+            CASE 
+                
+                WHEN data_scale IS NOT NULL THEN  ',' || 
+
+             data_scale ELSE '' END || ')'
+
+             ELSE '' 
+
+             END
+        ELSE data_type
+    END AS type_donnee_util_id
+    INTO v_utilisateur_id_type
+    FROM USER_TAB_COLUMNS
+    WHERE UPPER(TABLE_NAME) = 'UTILISATEURS' -- doit être en majuscule
+    AND UPPER(COLUMN_NAME) = 'UTILISATEUR_ID'; -- doit être en majuscule
+
+-- pour trouver le type de date
+        SELECT CASE
+
+         WHEN data_type = ('VARCHAR2') THEN data_type || '(' || data_length || ')'
+
+         WHEN data_type = ('NUMBER') THEN data_type ||
+
+            CASE WHEN DATA_PRECISION IS NOT NULL THEN
+
+            '(' || data_precision ||
+             
+            CASE 
+                
+                WHEN data_scale IS NOT NULL THEN  ',' || 
+
+             data_scale ELSE '' END || ')'
+
+             ELSE '' 
+
+             END
+        ELSE data_type
+    END AS type_donne_date
+    
+    INTO v_date_log_type
+    FROM USER_TAB_COLUMNS
+    WHERE TABLE_NAME = 'UTILISATEURS' -- doit être en majuscule
+    AND COLUMN_NAME = 'DATE_CREATION'; -- doit être en majuscule
+
+    DBMS_OUTPUT.PUT_LINE(v_utilisateur_id_type);
+    DBMS_OUTPUT.PUT_LINE(v_date_log_type);
+
+
+   /*
+    v_code_creation_table := '  
     
         CREATE TABLE journalisation_empreinte_duplique (
 
         log_id NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-        utilisateur1_id VARCHAR(255),
-        utilisateur2_id VARCHAR(255),
-        date_log TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL
+        utilisateur1_id ' || v_utilisateur_id_type ||',
+        utilisateur2_id ' || v_utilisateur_id_type || ',
+        date_log ' || v_date_log_type || '
 
-    )'
+    )';
+
+
+        EXECUTE IMMEDIATE v_code_creation_table
     ;
+    */
 
 END;
 /
@@ -494,9 +562,6 @@ END;
 -- Pour chaque doublon trouvé, la procédure doit: afficher son nom d'utilisateur et son utilisateur_id dans le terminal
 -- insérer une entrée dans la table de journalisation_empreinte_duplique avec les informations des deux utilisateurs et la date actuelle.
 
-select *
-from utilisateurs;
- 
 create or replace procedure verifier_empreintes_dupliquees IS
 
     cursor portrait_utilisateurs is
@@ -508,9 +573,9 @@ create or replace procedure verifier_empreintes_dupliquees IS
         from utilisateurs;    
 
 begin
-    for utilisateur in portrait_utilisateurs LOOP
+    FOR utilisateur in portrait_utilisateurs LOOP
 
-        for utilisateur_compare in portrait_utilisateurs_compares LOOP
+        FOR utilisateur_compare in portrait_utilisateurs_compares LOOP
 
             IF (utilisateur.mot_de_passe = utilisateur_compare.mot_de_passe) THEN
 
@@ -521,7 +586,6 @@ begin
                     INSERT INTO JOURNALISATION_EMPREINTE_DUPLIQUE(utilisateur1_id, utilisateur2_id) VALUES 
                     (
                         utilisateur.UTILISATEUR_ID, utilisateur_compare.UTILISATEUR_ID
-
                     );
 
                 END IF;    
@@ -538,28 +602,36 @@ END;
  
 execute verifier_empreintes_dupliquees;
  
- select * from JOURNALISATION_EMPREINTE_DUPLIQUE;
+select * from JOURNALISATION_EMPREINTE_DUPLIQUE;
 
 
 
 -- Étape 3: Créez un travail planifié pour exécuter la procédure verifier_empreintes_dupliquees quotidiennement (Recherche sur internet: DBMS_SCHEDULER).
 
-BEGIN
 
+BEGIN
+  DBMS_SCHEDULER.DROP_JOB('Verif_doublons_empreintes');
+END;
+/
+
+
+BEGIN
 
   DBMS_SCHEDULER.CREATE_JOB (
     job_name        => 'Verif_doublons_empreintes',
-    job_type        => 'STORED_PROCEDURE', -- Le type d'action est une procédure stockée
-    job_action      => 'verifier_empreintes_dupliquees', -- Le nom de la procédure à exécuter
-    start_date      => SYSTIMESTAMP, -- Démarrage immédiat (ou une date/heure spécifique)
-    repeat_interval => 'FREQ=DAILY; BYHOUR=0; BYMINUTE=0; BYSECOND=0', -- Fréquence quotidienne à minuit
+    job_type        => 'STORED_PROCEDURE', -- Précise que l'action est une procédure
+    job_action      => 'verifier_empreintes_dupliquees', 
+    start_date      => SYSTIMESTAMP, -- Permet de débuter le travail à sa création
+    repeat_interval => 'FREQ=DAILY; BYHOUR=0; BYMINUTE=0; BYSECOND=0', 
     enabled         => TRUE -- Active la tâche immédiatement
   );
-
-
-
 END;
 /
+
+-- Permet de voir l'état du travail
+SELECT job_name, enabled, state, last_start_date
+FROM user_scheduler_jobs
+WHERE job_name = 'Verif_doublons_empreintes';
 
 
 /*Étape 4 : Testez votre solution, à vous de choisir les scénarios de test.
@@ -572,6 +644,8 @@ Pour tester vous pouvez désactiver le trigger de hash et insérer des utilisate
 N'oublier pas de réactiver le trigger après vos tests.
 */
 ALTER TRIGGER trigger_hachage_mot_de_passe DISABLE;
+
+ALTER TRIGGER trigger_hachage_mot_de_passe ENABLE;
 
   --Ajout utilisateur 1
     insert into UTILISATEURS (nom_utilisateur, mot_de_passe, sel)values('Pierre', 'Abcdefg123456', 'HELLO');
