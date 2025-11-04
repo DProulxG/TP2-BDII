@@ -498,26 +498,29 @@ select *
 from utilisateurs;
  
 create or replace procedure verifier_empreintes_dupliquees IS
-    cursor c_hash is
+
+    cursor portrait_utilisateurs is
         select utilisateur_id, nom_utilisateur, MOT_DE_PASSE
         from utilisateurs;
 
-    cursor c_mots_de_passe IS select utilisateur_id, nom_utilisateur, MOT_DE_PASSE
-                              from utilisateurs;    
+    cursor portrait_utilisateurs_compares IS 
+        select utilisateur_id, nom_utilisateur, MOT_DE_PASSE
+        from utilisateurs;    
+
 begin
-    for curs in c_hash LOOP
+    for utilisateur in portrait_utilisateurs LOOP
 
-        for mdp in c_mots_de_passe LOOP
+        for utilisateur_compare in portrait_utilisateurs_compares LOOP
 
-            IF (curs.mot_de_passe = mdp.mot_de_passe) THEN
+            IF (utilisateur.mot_de_passe = utilisateur_compare.mot_de_passe) THEN
 
-                IF (curs.utilisateur_id = mdp.utilisateur_id) THEN
+                IF (utilisateur.utilisateur_id = utilisateur_compare.utilisateur_id) THEN
                     CONTINUE;
                 ELSE 
                    -- DBMS_OUTPUT.PUT_LINE('DOUBLON TROUVÉ!! ' || curs.mot_de_passe || ' de l''utilisateur ' || curs.nom_utilisateur || ' et ' || mdp.mot_de_passe || ' de l''utilisateur ' || mdp.nom_utilisateur);
                     INSERT INTO JOURNALISATION_EMPREINTE_DUPLIQUE(utilisateur1_id, utilisateur2_id) VALUES 
                     (
-                        CURS.UTILISATEUR_ID, MDP.UTILISATEUR_ID
+                        utilisateur.UTILISATEUR_ID, utilisateur_compare.UTILISATEUR_ID
 
                     );
 
@@ -527,10 +530,10 @@ begin
 
         END LOOP;
 
-    end loop;
+    END LOOP;
 
 
-end;
+END;
 /
  
 execute verifier_empreintes_dupliquees;
@@ -541,6 +544,22 @@ execute verifier_empreintes_dupliquees;
 
 -- Étape 3: Créez un travail planifié pour exécuter la procédure verifier_empreintes_dupliquees quotidiennement (Recherche sur internet: DBMS_SCHEDULER).
 
+BEGIN
+
+
+  DBMS_SCHEDULER.CREATE_JOB (
+    job_name        => 'Verif_doublons_empreintes',
+    job_type        => 'STORED_PROCEDURE', -- Le type d'action est une procédure stockée
+    job_action      => 'verifier_empreintes_dupliquees', -- Le nom de la procédure à exécuter
+    start_date      => SYSTIMESTAMP, -- Démarrage immédiat (ou une date/heure spécifique)
+    repeat_interval => 'FREQ=DAILY; BYHOUR=0; BYMINUTE=0; BYSECOND=0', -- Fréquence quotidienne à minuit
+    enabled         => TRUE -- Active la tâche immédiatement
+  );
+
+
+
+END;
+/
 
 
 /*Étape 4 : Testez votre solution, à vous de choisir les scénarios de test.
