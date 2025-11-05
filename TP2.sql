@@ -364,28 +364,11 @@ BEGIN
 END;
 /
 
-
--- Boucle pour incrementer le nombre de tentatives (Permet facilement de valider l'echec de validation du mdp même avec le bon mot de passe)
--- De plus, permet de valider la fonctionnalité de l'incrémentation
-DECLARE
-    connexion BOOLEAN := valider_connexion('mathieu', 'Tp2Ba$eD0nnees2025');
-BEGIN
-
-    for i IN 1..4 LOOP
-        IF (connexion) THEN 
-            DBMS_OUTPUT.PUT_LINE('Connexion réussie!');
-        ELSE 
-            DBMS_OUTPUT.PUT_LINE('Connexion échouée...');
-    END IF;
-END LOOP;
-END;
-/
-
 select * FROM UTILISATEURS;
 
 --Étape 7 : Testez votre solution:
 
---1. ajouter un utilisateur avec un mot de passe invalide
+--1. ajouter un utilisateur avec un mot de passe invalide (ici mdp -> trop court)
 insert into UTILISATEURS (nom_utilisateur, mot_de_passe)
 values('Henry', 'abcd123');
 
@@ -416,6 +399,22 @@ BEGIN
     end if;
 end;
 /
+-- Boucle pour incrementer le nombre de tentatives (Permet facilement de valider l'echec de validation du mdp même avec le bon mot de passe)
+-- De plus, permet de valider la fonctionnalité de l'incrémentation
+DECLARE
+    connexion BOOLEAN := valider_connexion('mathieu', 'Tp2Ba$eD0nnees2025');
+BEGIN
+
+    for i IN 1..4 LOOP
+        IF (connexion) THEN 
+            DBMS_OUTPUT.PUT_LINE('Connexion réussie!');
+        ELSE 
+            DBMS_OUTPUT.PUT_LINE('Connexion échouée...');
+    END IF;
+END LOOP;
+END;
+/
+
 
 
 --5. tester la modification du mot de passe d'un utilisateur existant.
@@ -430,10 +429,6 @@ where nom_utilisateur = 'Henry';
     insert into UTILISATEURS (nom_utilisateur, mot_de_passe)values('Pierre', 'Abcdefg123456');
     --Ajout utilisateur 2
     insert into UTILISATEURS (nom_utilisateur, mot_de_passe)values('Jacques', 'Abcdefg123456');
-      --Ajout utilisateur 1
-    insert into UTILISATEURS (nom_utilisateur, mot_de_passe,sel)values('Paulo', 'qwerty98765','dav');
-    --Ajout utilisateur 2
-    insert into UTILISATEURS (nom_utilisateur, mot_de_passe,sel)values('Marco', 'qwerty98765','dav');
 
 DECLARE
     v_mdp_util1 VARCHAR2(255);
@@ -630,10 +625,11 @@ where u2.UTILISATEUR_ID < u1.UTILISATEUR_ID
     insert into JOURNALISATION_EMPREINTE_DUPLIQUE(utilisateur1_id, utilisateur2_id) values(doublons.util1, doublons.util2);
     end loop;
 end;
- 
+/
+
 execute verifier_empreintes_dupliquees;
 execute TROUVE_DOUBLON;
-select * from utilisateurs;
+
 
 select * from JOURNALISATION_EMPREINTE_DUPLIQUE;
 TRUNCATE TABLE journalisation_empreinte_duplique;
@@ -655,7 +651,7 @@ BEGIN
   DBMS_SCHEDULER.CREATE_JOB (
     job_name        => 'Verif_doublons_empreintes', --Nommage du job (doit être unique)
     job_type        => 'STORED_PROCEDURE', -- Précise que l'action est une procédure existante
-    job_action      => 'verifier_empreintes_dupliquees', -- Soit la procedure existante
+    job_action      => 'trouve_doublon', -- Soit la procedure existante
     start_date      => SYSTIMESTAMP, -- Permet de débuter le travail à sa création/Date de démarrage
     repeat_interval => 'FREQ=DAILY; BYHOUR=0; BYMINUTE=0; BYSECOND=20', -- Frequence d'éxécution
     enabled         => TRUE -- Active la tâche immédiatement
@@ -669,27 +665,48 @@ FROM user_scheduler_jobs
 WHERE job_name = 'Verif_doublons_empreintes';
 
 
-/*Étape 4 : Testez votre solution, à vous de choisir les scénarios de test.
-1.
+--Étape 4 : Testez votre solution, à vous de choisir les scénarios de test.
+--0. VIsualiser la table journalisation_empreinte_duplique & table utilisateur
+select * from journalisation_empreinte_duplique;
+select * from utilisateurs;
+
+--1.Vider la table journalisation_empreinte_duplique
+truncate table journalisation_empreinte_duplique;
+
+--2.Tester avec verifier_empreintes_dupliquees sur une table sans doublons
+execute TROUVE_DOUBLON;
+select * from journalisation_empreinte_duplique; --Aucune entrée ne devrait apparaitre
+
+--3. Ajout d'un utilisateur avec le même mot de passe qu'un autre utilisateur
+insert into UTILISATEURS (nom_utilisateur, mot_de_passe, sel) 
+select 'UtilisateurCopieur', mot_de_passe, 'selHardCode'
+from utilisateurs 
+where utilisateur_id = 19;
+
+--4.Rééxécuter la vérification d'empreinte-doublon avec verifier_empreintes_dupliquees
+execute TROUVE_DOUBLON;
+--4.1 Vérifier si l'ajout a bien été fait au niveau de la table journalisation_empreinte_duplique
+select * from journalisation_empreinte_duplique; --Date et log_id bien généré
 
 
-
-
-Pour tester vous pouvez désactiver le trigger de hash et insérer des utilisateurs avec les mêmes mot de passe. 
-N'oublier pas de réactiver le trigger après vos tests.
-*/
+--Pour tester vous pouvez désactiver le trigger de hash et insérer des utilisateurs avec les mêmes mot de passe. 
+--N'oublier pas de réactiver le trigger après vos tests.
+--Désactive le trigger
 ALTER TRIGGER trigger_hachage_mot_de_passe DISABLE;
 
+--Réactive le trigger
 ALTER TRIGGER trigger_hachage_mot_de_passe ENABLE;
 
-  --Ajout utilisateur 1
+--Ajout utilisateur 1
     insert into UTILISATEURS (nom_utilisateur, mot_de_passe, sel)values('Pierre', 'Abcdefg123456', 'HELLO');
-    --Ajout utilisateur 2
+
+--Ajout utilisateur 2
     insert into UTILISATEURS (nom_utilisateur, mot_de_passe, sel)values('Jacques', 'Abcdefg123456', 'HELLO');
-    --Changement du mot de passe
+
+--Changement du mot de passe
     UPDATE UTILISATEURS
     SET mot_de_passe = 'Abcdefg123456'
-    WHERE nom_utilisateur = 'mathieu';
+WHERE nom_utilisateur = 'mathieu';
 
 
 
