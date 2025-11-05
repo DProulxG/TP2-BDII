@@ -474,74 +474,60 @@ select * from utilisateurs;
 -- log_id (clé primaire, auto-incrémentée), 1_utilisateur_id, 2_utilisateur_id, date_log. 
 -- PS: si un type de données change, le script doit toujours fonctionner.
 
+-- création d'une fonction pour récupérer les types
+CREATE OR REPLACE FUNCTION recuperer_type(nom_colonne VARCHAR2, nom_table VARCHAR2) RETURN VARCHAR2 IS
+
+v_type VARCHAR2(50);
+
+BEGIN
+SELECT 
+
+       CASE
+        -- Vérifie s'il s'agit d'un VARCHAR2 et ajoute la longueur de ce dernier
+         WHEN data_type = 'VARCHAR2' THEN data_type || '(' || data_length || ')'
+        -- Vérifie s'il s'agit d'un NUMBER et ajoute la précision et l'échelle le cas échéant 
+         WHEN data_type = 'NUMBER' THEN data_type || 
+         
+            CASE WHEN data_precision IS NOT NULL THEN  '(' || data_precision ||
+
+            CASE WHEN data_scale IS NOT NULL THEN ',' || data_scale END || ')'
+
+            END
+         
+        -- Prend les autres types 
+         ELSE data_type 
+
+       END AS type_colonne
+
+    INTO v_type
+
+    FROM user_tab_columns
+
+    WHERE table_name = UPPER(nom_table) -- doit être en majuscules puisqu'il est stocké en majuscules dans la table user_tab_columns
+    
+    AND column_name = UPPER(nom_colonne);
+
+    RETURN v_type;
+END;
+/
+
 DECLARE 
 
-    v_utilisateur_id_type VARCHAR2(50);
-    v_date_log_type VARCHAR2(50);
-    v_code_creation_table VARCHAR2(500);
+    v_utilisateur_id_type VARCHAR(50);
+    v_date_log_type VARCHAR(50);
+    v_code_creation_table VARCHAR(500);
+
 
 BEGIN
 
 -- pour trouver le type de utilisateur_id
-    SELECT CASE
+    v_utilisateur_id_type := recuperer_type('utilisateur_id', 'utilisateurs');
 
-         WHEN data_type = ('VARCHAR2') THEN data_type || '(' || data_length || ')'
-
-         WHEN data_type = ('NUMBER') THEN data_type ||
-
-            CASE WHEN DATA_PRECISION IS NOT NULL THEN
-
-            '(' || data_precision ||
-             
-            CASE 
-                
-                WHEN data_scale IS NOT NULL THEN  ',' || 
-
-             data_scale ELSE '' END || ')'
-
-             ELSE '' 
-
-             END
-        ELSE data_type
-    END AS type_donnee_util_id
-    INTO v_utilisateur_id_type
-    FROM USER_TAB_COLUMNS
-    WHERE UPPER(TABLE_NAME) = 'UTILISATEURS' -- doit être en majuscule
-    AND UPPER(COLUMN_NAME) = 'UTILISATEUR_ID'; -- doit être en majuscule
-
--- pour trouver le type de date
-        SELECT CASE
-
-         WHEN data_type = ('VARCHAR2') THEN data_type || '(' || data_length || ')'
-
-         WHEN data_type = ('NUMBER') THEN data_type ||
-
-            CASE WHEN DATA_PRECISION IS NOT NULL THEN
-
-            '(' || data_precision ||
-             
-            CASE 
-                
-                WHEN data_scale IS NOT NULL THEN  ',' || 
-
-             data_scale ELSE '' END || ')'
-
-             ELSE '' 
-
-             END
-        ELSE data_type
-    END AS type_donne_date
-    
-    INTO v_date_log_type
-    FROM USER_TAB_COLUMNS
-    WHERE TABLE_NAME = 'UTILISATEURS' -- doit être en majuscule
-    AND COLUMN_NAME = 'DATE_CREATION'; -- doit être en majuscule
-
-    DBMS_OUTPUT.PUT_LINE(v_utilisateur_id_type);
-    DBMS_OUTPUT.PUT_LINE(v_date_log_type);
+-- pour trouver le type de la date 
+    v_date_log_type := recuperer_type('date_creation', 'utilisateurs');
 
 
-   /*
+   
     v_code_creation_table := '  
     
         CREATE TABLE journalisation_empreinte_duplique (
@@ -549,17 +535,19 @@ BEGIN
         log_id NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
         utilisateur1_id ' || v_utilisateur_id_type ||',
         utilisateur2_id ' || v_utilisateur_id_type || ',
-        date_log ' || v_date_log_type || '
+        date_log ' || v_date_log_type || ' DEFAULT SYSTIMESTAMP NOT NULL' || '
 
     )';
 
 
         EXECUTE IMMEDIATE v_code_creation_table
     ;
-    */
+    
 
 END;
 /
+
+
 
 
 
