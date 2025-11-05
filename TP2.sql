@@ -430,6 +430,10 @@ where nom_utilisateur = 'Henry';
     insert into UTILISATEURS (nom_utilisateur, mot_de_passe)values('Pierre', 'Abcdefg123456');
     --Ajout utilisateur 2
     insert into UTILISATEURS (nom_utilisateur, mot_de_passe)values('Jacques', 'Abcdefg123456');
+      --Ajout utilisateur 1
+    insert into UTILISATEURS (nom_utilisateur, mot_de_passe,sel)values('Paulo', 'qwerty98765','dav');
+    --Ajout utilisateur 2
+    insert into UTILISATEURS (nom_utilisateur, mot_de_passe,sel)values('Marco', 'qwerty98765','dav');
 
 DECLARE
     v_mdp_util1 VARCHAR2(255);
@@ -460,6 +464,13 @@ BEGIN
 END;
 
 select * from utilisateurs;
+
+
+
+
+
+
+
 
 -- Q2: créer une procédure pour vérifier qu'aucune empreinte n'est dupliquée dans la table utilisateurs. 
 
@@ -595,14 +606,38 @@ begin
         END LOOP;
 
     END LOOP;
-
-
 END;
 /
+
+select 
+    u1.UTILISATEUR_ID,
+    u2.UTILISATEUR_ID
+from UTILISATEURS u1
+join UTILISATEURS u2 on u1.mot_de_passe = u2.MOT_DE_PASSE
+where u2.UTILISATEUR_ID < u1.UTILISATEUR_ID;
+
+
+create or replace procedure trouve_doublon is
+BEGIN
+    for doublons in (
+        select 
+    u1.UTILISATEUR_ID as util1,
+    u2.UTILISATEUR_ID as util2
+from UTILISATEURS u1
+join UTILISATEURS u2 on u1.mot_de_passe = u2.MOT_DE_PASSE
+where u2.UTILISATEUR_ID < u1.UTILISATEUR_ID
+    )loop
+    insert into JOURNALISATION_EMPREINTE_DUPLIQUE(utilisateur1_id, utilisateur2_id) values(doublons.util1, doublons.util2);
+    end loop;
+end;
  
 execute verifier_empreintes_dupliquees;
- 
+execute TROUVE_DOUBLON;
+select * from utilisateurs;
+
 select * from JOURNALISATION_EMPREINTE_DUPLIQUE;
+TRUNCATE TABLE journalisation_empreinte_duplique;
+
 
 
 
@@ -618,11 +653,11 @@ END;
 BEGIN
 
   DBMS_SCHEDULER.CREATE_JOB (
-    job_name        => 'Verif_doublons_empreintes',
-    job_type        => 'STORED_PROCEDURE', -- Précise que l'action est une procédure
-    job_action      => 'verifier_empreintes_dupliquees', 
-    start_date      => SYSTIMESTAMP, -- Permet de débuter le travail à sa création
-    repeat_interval => 'FREQ=DAILY; BYHOUR=0; BYMINUTE=0; BYSECOND=0', 
+    job_name        => 'Verif_doublons_empreintes', --Nommage du job (doit être unique)
+    job_type        => 'STORED_PROCEDURE', -- Précise que l'action est une procédure existante
+    job_action      => 'verifier_empreintes_dupliquees', -- Soit la procedure existante
+    start_date      => SYSTIMESTAMP, -- Permet de débuter le travail à sa création/Date de démarrage
+    repeat_interval => 'FREQ=DAILY; BYHOUR=0; BYMINUTE=0; BYSECOND=20', -- Frequence d'éxécution
     enabled         => TRUE -- Active la tâche immédiatement
   );
 END;
