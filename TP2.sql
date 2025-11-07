@@ -504,12 +504,14 @@ SELECT
 END;
 /
 
+
+DROP TABLE journalisation_empreinte_duplique;
+
 DECLARE 
 
     v_utilisateur_id_type VARCHAR(50);
     v_date_log_type VARCHAR(50);
     v_code_creation_table VARCHAR(500);
-
 
 BEGIN
 
@@ -519,8 +521,6 @@ BEGIN
 -- pour trouver le type de la date 
     v_date_log_type := recuperer_type('date_creation', 'utilisateurs');
 
-
-   
     v_code_creation_table := '  
     
         CREATE TABLE journalisation_empreinte_duplique (
@@ -531,12 +531,8 @@ BEGIN
         date_log ' || v_date_log_type || ' DEFAULT SYSTIMESTAMP NOT NULL' || '
 
     )';
-
-
         EXECUTE IMMEDIATE v_code_creation_table
     ;
-    
-
 END;
 /
 
@@ -548,42 +544,8 @@ END;
 -- La procédure doit rechercher les empreintes dupliquées dans la table utilisateurs.
 -- Pour chaque doublon trouvé, la procédure doit: afficher son nom d'utilisateur et son utilisateur_id dans le terminal
 -- insérer une entrée dans la table de journalisation_empreinte_duplique avec les informations des deux utilisateurs et la date actuelle.
-/*
-create or replace procedure verifier_empreintes_dupliquees IS
 
-    cursor portrait_utilisateurs is
-        select utilisateur_id, nom_utilisateur, MOT_DE_PASSE
-        from utilisateurs;
 
-    cursor portrait_utilisateurs_compares IS 
-        select utilisateur_id, nom_utilisateur, MOT_DE_PASSE
-        from utilisateurs;    
-
-begin
-    FOR utilisateur in portrait_utilisateurs LOOP
-
-        FOR utilisateur_compare in portrait_utilisateurs_compares LOOP
-
-            IF (utilisateur.mot_de_passe = utilisateur_compare.mot_de_passe) THEN
-
-                IF (utilisateur.utilisateur_id = utilisateur_compare.utilisateur_id) THEN
-                    CONTINUE;
-                ELSE 
-                   -- DBMS_OUTPUT.PUT_LINE('DOUBLON TROUVÉ!! ' || curs.mot_de_passe || ' de l''utilisateur ' || curs.nom_utilisateur || ' et ' || mdp.mot_de_passe || ' de l''utilisateur ' || mdp.nom_utilisateur);
-                    INSERT INTO JOURNALISATION_EMPREINTE_DUPLIQUE(utilisateur1_id, utilisateur2_id) VALUES 
-                    (
-                        utilisateur.UTILISATEUR_ID, utilisateur_compare.UTILISATEUR_ID
-                    );
-
-                END IF;    
-
-            END IF;
-
-        END LOOP;
-
-    END LOOP;
-END;
-/*/
 
 select 
     u1.UTILISATEUR_ID,
@@ -608,23 +570,10 @@ where u2.UTILISATEUR_ID < u1.UTILISATEUR_ID
 end;
 /
 
-execute verifier_empreintes_dupliquees;
 execute TROUVE_DOUBLON;
 
 
-select * from JOURNALISATION_EMPREINTE_DUPLIQUE;
-TRUNCATE TABLE journalisation_empreinte_duplique;
-
-
-
-
 -- Étape 3: Créez un travail planifié pour exécuter la procédure verifier_empreintes_dupliquees quotidiennement (Recherche sur internet: DBMS_SCHEDULER).
-
-
-BEGIN
-  DBMS_SCHEDULER.DROP_JOB('Verif_doublons_empreintes');
-END;
-/
 
 
 BEGIN
@@ -647,6 +596,7 @@ WHERE job_name = 'Verif_doublons_empreintes';
 
 
 --Étape 4 : Testez votre solution, à vous de choisir les scénarios de test.
+
 --0. VIsualiser la table journalisation_empreinte_duplique & table utilisateur
 select * from journalisation_empreinte_duplique;
 select * from utilisateurs;
@@ -654,29 +604,46 @@ select * from utilisateurs;
 --1.Vider la table journalisation_empreinte_duplique
 truncate table journalisation_empreinte_duplique;
 
+--1.1 Enlever les utilisateurs qui ont le même mot de passe
+delete from utilisateurs where nom_utilisateur = 'Paulo';
+delete from utilisateurs where nom_utilisateur = 'Marco';
+
+
 --2.Tester avec verifier_empreintes_dupliquees sur une table sans doublons
 execute verifier_empreintes_dupliquees;
 select * from journalisation_empreinte_duplique; --Aucune entrée ne devrait apparaitre
 
---3. Ajout d'un utilisateur avec le même mot de passe qu'un autre utilisateur
-insert into UTILISATEURS (nom_utilisateur, mot_de_passe, sel) 
-select 'UtilisateurCopieur', mot_de_passe, 'selHardCode'
-from utilisateurs 
-where utilisateur_id = 19;
+--3. Ajout d'un utilisateur 
+
+insert into UTILISATEURS (nom_utilisateur, mot_de_passe, sel) values 
+(
+    'Paulo', 'qwerty98765', 'dav'
+);
+
+-- 3.1 Ajout d'un autre utilisateur avec le même mot de passe que Paulo
+
+insert into UTILISATEURS (nom_utilisateur, mot_de_passe, sel) values 
+(
+    'Marco', 'qwerty98765', 'dav'
+);
 
 --4.Rééxécuter la vérification d'empreinte-doublon avec verifier_empreintes_dupliquees
 execute verifier_empreintes_dupliquees;
+
 --4.1 Vérifier si l'ajout a bien été fait au niveau de la table journalisation_empreinte_duplique
 select * from journalisation_empreinte_duplique; --Date et log_id bien généré
 
-
 --Pour tester vous pouvez désactiver le trigger de hash et insérer des utilisateurs avec les mêmes mot de passe. 
 --N'oublier pas de réactiver le trigger après vos tests.
+
 --Désactive le trigger
 ALTER TRIGGER trigger_hachage_mot_de_passe DISABLE;
 
 --Réactive le trigger
 ALTER TRIGGER trigger_hachage_mot_de_passe ENABLE;
+
+
+-- -----------------------------------------------------------------------------------------------------------------------
 
 --Ajout utilisateur 1
     insert into UTILISATEURS (nom_utilisateur, mot_de_passe, sel)values('Pierre', 'Abcdefg123456', 'HELLO');
