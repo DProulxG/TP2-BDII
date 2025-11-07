@@ -283,8 +283,6 @@ CREATE OR REPLACE FUNCTION valider_connexion(
 BEGIN
     --TODO : Vérifiez le mot de passe.
 
-    -- ******voir pour faire un curseur qui permet de placer les trois SELECT...INTO en 1 seule commande*******
-
     -- recupere le sel de l'utilisateur
     SELECT sel INTO v_sel_utilisateur
     FROM UTILISATEURS
@@ -331,33 +329,6 @@ BEGIN
 END;
 /
 
--- test...Je le laisse car peut-etre que ce sera utile pour les tests à la prochaine question! Mais ca fonctionne!
-select * from utilisateurs;
-
-DELETE FROM UTILISATEURS WHERE NOM_UTILISATEUR = 'Henry';
-
-INSERT INTO utilisateurs(NOM_UTILISATEUR, MOT_DE_PASSE) VALUES('mathieu','Tp2Ba$eD0nnees2025!');
-
---Réintialise le nombre de tentative à 0
-UPDATE UTILISATEURS
-SET NB_TENTATIVES_ECHOUEES = 2
-WHERE nom_utilisateur = 'Henry';
-
-
--- Validation lors de la saisie du bon mot de passe || Échec dans le cas ou le nombre de tentative est supérieure à 3
-DECLARE
-
-    connexion BOOLEAN := valider_connexion('mathieu', 'Tp2Ba$eD0nnees2025!');
-BEGIN
-
-    IF (connexion) THEN 
-        DBMS_OUTPUT.PUT_LINE('Connexion réussie!');
-    ELSE 
-        DBMS_OUTPUT.PUT_LINE('Connexion échouée...');
-    END IF;
-
-END;
-/
 
 --Étape 7 : Testez votre solution:
 select * from utilisateurs;
@@ -452,14 +423,6 @@ BEGIN
 END;
 
 
-
-
-
-
-
-
-
-
 -- Q2: créer une procédure pour vérifier qu'aucune empreinte n'est dupliquée dans la table utilisateurs. 
 
 -- Étape 1: créer une table de journalisation_empreinte_duplique pour enregistrer les doublons.
@@ -544,8 +507,6 @@ END;
 -- La procédure doit rechercher les empreintes dupliquées dans la table utilisateurs.
 -- Pour chaque doublon trouvé, la procédure doit: afficher son nom d'utilisateur et son utilisateur_id dans le terminal
 -- insérer une entrée dans la table de journalisation_empreinte_duplique avec les informations des deux utilisateurs et la date actuelle.
-
-
 
 select 
     u1.UTILISATEUR_ID,
