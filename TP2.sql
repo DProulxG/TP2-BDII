@@ -569,7 +569,7 @@ where u2.UTILISATEUR_ID < u1.UTILISATEUR_ID
     )loop
 
     -- Afficher le nom d'utilisateur et son utilisateur_id dans le terminal
-    DBMS_OUTPUT.PUT_LINE('Doublon!!! - ' || doublons.nomUtil2 || ' - ' || doublons.util1);
+    DBMS_OUTPUT.PUT_LINE('Doublon!!! - ' || doublons.nomUtil2 || ' - ' || doublons.util2);
 
     -- Inserer l'entrée dans journalisation_empreinte_duplique 
     insert into JOURNALISATION_EMPREINTE_DUPLIQUE(utilisateur1_id, utilisateur2_id) values(doublons.util1, doublons.util2);
