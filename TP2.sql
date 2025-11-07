@@ -560,11 +560,18 @@ BEGIN
     for doublons in (
         select 
     u1.UTILISATEUR_ID as util1,
-    u2.UTILISATEUR_ID as util2
+    u1.nom_utilisateur as nomUtil1,
+    u2.UTILISATEUR_ID as util2,
+    u2.nom_utilisateur as nomUtil2
 from UTILISATEURS u1
 join UTILISATEURS u2 on u1.mot_de_passe = u2.MOT_DE_PASSE
 where u2.UTILISATEUR_ID < u1.UTILISATEUR_ID
     )loop
+
+    -- Afficher le nom d'utilisateur et son utilisateur_id dans le terminal
+    DBMS_OUTPUT.PUT_LINE('Doublon!!! - ' || doublons.nomUtil2 || ' - ' || doublons.util1);
+
+    -- Inserer l'entrée dans journalisation_empreinte_duplique 
     insert into JOURNALISATION_EMPREINTE_DUPLIQUE(utilisateur1_id, utilisateur2_id) values(doublons.util1, doublons.util2);
     end loop;
 end;
