@@ -30,7 +30,6 @@ CREATE TABLE utilisateurs (
     date_creation  TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL
 );
 
-SELECT * FROM utilisateurs;
 -- Étape 2 : Créez une fonction pour générer un sel aléatoire, qui prend en paramètre la longueur souhaitée du sel.
 CREATE OR REPLACE FUNCTION generer_sel(
     p_longueur IN NUMBER
@@ -75,7 +74,7 @@ BEGIN
             dbms_output.put_line('Mot de passe doit contenir au moins 1 majuscule');
         ELSif length(v_mdp) >= 12 and REGEXP_LIKE(v_mdp, '[0-9]') and REGEXP_LIKE(v_mdp,'[A-Z]') then
           v_mdp_valide := true;
-            dbms_output.put_line('Mot de passe est valide');
+        
         
         end if;
         return v_mdp_valide;
@@ -252,17 +251,15 @@ select * from utilisateurs;
 -- Test mdp valide et message de validation
 INSERT INTO utilisateurs (nom_utilisateur, mot_de_passe)
 VALUES ('David', 'UnAutreMotDePasse1');
-select * from utilisateurs;
 
 --Test mdp invalide avec message d'avertissement
 INSERT INTO utilisateurs (nom_utilisateur, mot_de_passe)
-VALUES ('Louis', 'tropcourt');
-select * from utilisateurs;
+VALUES ('UsagerValide', 'TropCoolCaMArche1');
 
 -- Test de modification de mot de passe
 update utilisateurs
 set MOT_DE_PASSE = 'UnAutreMotDePasse2'
-WHERE UTILISATEUR_ID = 22; 
+WHERE nom_utilisateur = 'UsagerValide'; 
 
 /*Étape 6 : Créez une fonction pour vérifier si le mot de passe donné correspond à l'empreinte enregistré.
 -- Prend en paramètre le nom d'utilisateur et le mot de passe.
@@ -335,18 +332,16 @@ END;
 /
 
 -- test...Je le laisse car peut-etre que ce sera utile pour les tests à la prochaine question! Mais ca fonctionne!
-
 select * from utilisateurs;
 
-DELETE FROM UTILISATEURS WHERE NOM_UTILISATEUR = 'mathieu';
-DELETE FROM UTILISATEURS WHERE NOM_UTILISATEUR = 'Mario';
+DELETE FROM UTILISATEURS WHERE NOM_UTILISATEUR = 'Henry';
 
 INSERT INTO utilisateurs(NOM_UTILISATEUR, MOT_DE_PASSE) VALUES('mathieu','Tp2Ba$eD0nnees2025!');
 
 --Réintialise le nombre de tentative à 0
 UPDATE UTILISATEURS
-SET NB_TENTATIVES_ECHOUEES = 0
-WHERE nom_utilisateur = 'mathieu';
+SET NB_TENTATIVES_ECHOUEES = 2
+WHERE nom_utilisateur = 'Henry';
 
 
 -- Validation lors de la saisie du bon mot de passe || Échec dans le cas ou le nombre de tentative est supérieure à 3
@@ -364,10 +359,8 @@ BEGIN
 END;
 /
 
-select * FROM UTILISATEURS;
-
 --Étape 7 : Testez votre solution:
-
+select * from utilisateurs;
 --1. ajouter un utilisateur avec un mot de passe invalide (ici mdp -> trop court)
 insert into UTILISATEURS (nom_utilisateur, mot_de_passe)
 values('Henry', 'abcd123');
@@ -388,7 +381,7 @@ BEGIN
 end;
 /
 
---4. tester la connexion avec un mot de passe incorrect plusieurs fois.
+--4. tester la connexion avec un mot de passe incorrect plusieurs fois malgré le bon cette fois-ci
 declare
     v_connexion BOOLEAN := VALIDER_CONNEXION('Henry', 'abcd123MaisQuiPassePas');
 BEGIN
@@ -399,10 +392,11 @@ BEGIN
     end if;
 end;
 /
+
 -- Boucle pour incrementer le nombre de tentatives (Permet facilement de valider l'echec de validation du mdp même avec le bon mot de passe)
 -- De plus, permet de valider la fonctionnalité de l'incrémentation
 DECLARE
-    connexion BOOLEAN := valider_connexion('mathieu', 'Tp2Ba$eD0nnees2025');
+    connexion BOOLEAN := valider_connexion('Henry', 'abcd123MaisQuiPasse');
 BEGIN
 
     for i IN 1..4 LOOP
@@ -414,7 +408,6 @@ BEGIN
 END LOOP;
 END;
 /
-
 
 
 --5. tester la modification du mot de passe d'un utilisateur existant.
@@ -458,7 +451,7 @@ BEGIN
     end if;
 END;
 
-select * from utilisateurs;
+
 
 
 
@@ -555,7 +548,7 @@ END;
 -- La procédure doit rechercher les empreintes dupliquées dans la table utilisateurs.
 -- Pour chaque doublon trouvé, la procédure doit: afficher son nom d'utilisateur et son utilisateur_id dans le terminal
 -- insérer une entrée dans la table de journalisation_empreinte_duplique avec les informations des deux utilisateurs et la date actuelle.
-
+/*
 create or replace procedure verifier_empreintes_dupliquees IS
 
     cursor portrait_utilisateurs is
@@ -590,7 +583,7 @@ begin
 
     END LOOP;
 END;
-/
+/*/
 
 select 
     u1.UTILISATEUR_ID,
@@ -600,7 +593,7 @@ join UTILISATEURS u2 on u1.mot_de_passe = u2.MOT_DE_PASSE
 where u2.UTILISATEUR_ID < u1.UTILISATEUR_ID;
 
 
-create or replace procedure trouve_doublon is
+create or replace procedure verifier_empreintes_dupliquees is
 BEGIN
     for doublons in (
         select 
@@ -662,7 +655,7 @@ select * from utilisateurs;
 truncate table journalisation_empreinte_duplique;
 
 --2.Tester avec verifier_empreintes_dupliquees sur une table sans doublons
-execute TROUVE_DOUBLON;
+execute verifier_empreintes_dupliquees;
 select * from journalisation_empreinte_duplique; --Aucune entrée ne devrait apparaitre
 
 --3. Ajout d'un utilisateur avec le même mot de passe qu'un autre utilisateur
@@ -672,7 +665,7 @@ from utilisateurs
 where utilisateur_id = 19;
 
 --4.Rééxécuter la vérification d'empreinte-doublon avec verifier_empreintes_dupliquees
-execute TROUVE_DOUBLON;
+execute verifier_empreintes_dupliquees;
 --4.1 Vérifier si l'ajout a bien été fait au niveau de la table journalisation_empreinte_duplique
 select * from journalisation_empreinte_duplique; --Date et log_id bien généré
 
