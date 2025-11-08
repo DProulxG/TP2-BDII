@@ -147,7 +147,6 @@ end;
 -- Le hachage doit inclure : le mot de passe, et un sel d'au moins 12 caractères généré aléatoirement.*/
 -- La fonction lance exception si le mot de passe n'est pas assez fort.
 CREATE OR REPLACE FUNCTION obtenir_hash_mot_de_passe(
-    
     p_password IN VARCHAR2,
     p_sel     IN VARCHAR2
 
@@ -161,7 +160,6 @@ CREATE OR REPLACE FUNCTION obtenir_hash_mot_de_passe(
 
 BEGIN
     --TODO : calculer un hachage sécurisé.
-    
     -- Effectue la vérification du mot de passe
     IF (VALIDE_MDP(p_password)) THEN
         v_mdp_ok := TRUE;
@@ -190,9 +188,7 @@ BEGIN
         RAISE_APPLICATION_ERROR(-20002, 'Hashage impossible...Le sel ou mot de passe sont invalides'); -- Exception lancée si le mot de passe n'est pas assez fort
     END IF;
 
-
     RETURN v_mdp_hache;
-
 END;
 /
 
@@ -201,7 +197,7 @@ END;
 -- La fonction doit gérer les exceptions si le mot de passe n'est pas assez fort et annuler l'insertion ou 
 -- la mise à jour et afficher un message d'erreur approprié.
 CREATE OR REPLACE TRIGGER trigger_hachage_mot_de_passe
-before insert or update 
+before insert or update of mot_de_passe
 on utilisateurs
 for each row
 Declare 
@@ -272,17 +268,13 @@ CREATE OR REPLACE FUNCTION valider_connexion(
     p_username IN VARCHAR2,
     p_password IN VARCHAR2
 ) RETURN BOOLEAN AS
-
     v_connexion BOOLEAN := FALSE;
     v_sel_utilisateur VARCHAR2(255);
     v_empreinte VARCHAR2(255);
     v_mdp_hashe VARCHAR2(255);
     v_nb_tentatives NUMBER;
-
-
 BEGIN
     --TODO : Vérifiez le mot de passe.
-
     -- recupere le sel de l'utilisateur
     SELECT sel INTO v_sel_utilisateur
     FROM UTILISATEURS
@@ -303,7 +295,6 @@ BEGIN
 
     -- comparaison de l'empreinte et du mot de passe 
     IF (v_mdp_hashe = v_empreinte) THEN
-    
         IF (v_nb_tentatives < 3) THEN
             -- validation de la connexion
             v_connexion := TRUE;
@@ -314,35 +305,31 @@ BEGIN
         ELSE 
             -- refus de connexion
             v_connexion := FALSE;
-
         END IF;
     ELSE
         -- incrémentation du nombre de tentatives echouees
         UPDATE UTILISATEURS
         SET NB_TENTATIVES_ECHOUEES = (v_nb_tentatives + 1)
         WHERE nom_utilisateur = p_username;
-
     END IF;
-
     RETURN v_connexion;
-
 END;
 /
 
 
 --Étape 7 : Testez votre solution:
-select * from utilisateurs;
+
 --1. ajouter un utilisateur avec un mot de passe invalide (ici mdp -> trop court)
 insert into UTILISATEURS (nom_utilisateur, mot_de_passe)
 values('Henry', 'abcd123');
 
 --2. ajouter un utilisateur avec un mot de passe valide
 insert into UTILISATEURS (nom_utilisateur, mot_de_passe)
-values('Henry', 'abcd123MaisQuiPasse');
+values('Jonathan', 'abcd123MaisQuiPasse');
 
 --3. tester la connexion avec le bon mot de passe
 declare
-    v_connexion BOOLEAN := VALIDER_CONNEXION('Henry', 'abcd123MaisQuiPasse');
+    v_connexion BOOLEAN := VALIDER_CONNEXION('Jonathan', 'abcd123MaisQuiPasse');
 BEGIN
     if (v_connexion) THEN
     DBMS_OUTPUT.PUT_LINE('Votre connexion s''est bien passée ');
@@ -352,9 +339,13 @@ BEGIN
 end;
 /
 
+update UTILISATEURS
+set NB_TENTATIVES_ECHOUEES = 2
+where UTILISATEUR_ID = 51;
+select * from utilisateurs;
 --4. tester la connexion avec un mot de passe incorrect plusieurs fois malgré le bon cette fois-ci
 declare
-    v_connexion BOOLEAN := VALIDER_CONNEXION('Henry', 'abcd123MaisQuiPassePas');
+    v_connexion BOOLEAN := VALIDER_CONNEXION('Jonathan', 'abcd123MaisQuiPassePas');
 BEGIN
     if (v_connexion) THEN
     DBMS_OUTPUT.PUT_LINE('Votre connexion s''est bien passée ');
@@ -623,7 +614,3 @@ ALTER TRIGGER trigger_hachage_mot_de_passe ENABLE;
     UPDATE UTILISATEURS
     SET mot_de_passe = 'Abcdefg123456'
 WHERE nom_utilisateur = 'mathieu';
-
-
-
-
